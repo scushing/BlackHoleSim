@@ -6,6 +6,11 @@ Shader"Unlit/BlackHole"
     Properties
     {
         _MainTex ("Texture", 2D) = "white" {}
+        _EffectRange ("Effect Range", float) = 5
+        _SchwarzschildRadius ("Schwarzschild Radius", float) = 1
+        _GravityScale ("Gravity Scale", float) = 1
+        _StepSize ("Step Size", float) = 0.03
+        _MaxSteps ("Max Steps", int) = 500
     }
 
     SubShader
@@ -29,7 +34,7 @@ Shader"Unlit/BlackHole"
             float _MaxSteps;
 
             const float _MaxFloat = 3.402823466e+38;
-            const float _GravitationalConstant = 6.6743e-11;
+            const float _GravitationalConstant = 0.4; //6.6743e-11;
             const float _SpeedOfLight = 299792458;
 
             struct appdata
@@ -42,12 +47,24 @@ Shader"Unlit/BlackHole"
             {
                 float2 uv : TEXCOORD0;
                 float4 vertex : SV_Position;
+                float3 worldPos : TEXCOOR1;
+                float3 viewVector : TEXCOORD2;
             };
 
-            struct FragmentOutput
+            // Vertex shader function
+            v2f vert(appdata input)
             {
-                float4 color : SV_Target;
-            };
+                v2f output;
+                output.vertex = UnityObjectToClipPos(input.vertex);
+                output.uv = input.uv;
+                output.worldPos = mul(unity_ObjectToWorld, input.vertex).xyz;
+    
+                float2 uv = input.uv * 2 - 1;
+                float3 viewVector = mul(unity_CameraInvProjection, float4(uv.x, uv.y, 0, -1));
+                output.viewVector = mul(unity_CameraToWorld, float4(viewVector, 0));
+    
+                return output;
+            }
 
             // Ray marching function
             float3 RayMarch(float3 rayOrigin, float3 rayDirection)
@@ -73,26 +90,18 @@ Shader"Unlit/BlackHole"
                         return currentDir;
                     }
                     // Get forces and update direction
-                    float accelerationMagnitude = _GravitationalConstant * _GravityScale / pow(length(currentPos), 2);
+                    float dist = length(currentPos);
+                    float accelerationMagnitude = _GravitationalConstant * _GravityScale / (dist * dist);
                     float3 acceleration = -normalize(currentPos) * accelerationMagnitude;
                     currentDir = normalize(currentDir + acceleration * deltaT);
                 }
                 return currentDir;
             }
 
-            // Vertex shader function
-            v2f vert(appdata input)
-            {
-                v2f output;
-                output.vertex = UnityObjectToClipPos(input.vertex);
-                output.uv = TRANSFORM_TEX(input.uv, _MainTex);
-                return output;
-            }
-
             // Fragment shader function
-            FragmentOutput frag(v2f input)
+            fixed4 frag(v2f input) : SV_Target
             {
-                FragmentOutput output;
+                float4 output;
     
                 // Calculate ray direction based on screen space coordinates
                 float3 rayOrigin = _WorldSpaceCameraPos.xyz;
@@ -101,7 +110,7 @@ Shader"Unlit/BlackHole"
                 // Check for collision with effect radius
                 float2 effectCollision = raySphereIntersection(float3(0, 0, 0), _EffectRange, rayOrigin, rayDirection);
                 float3 finalDir;
-                if (effectCollision.x = _MaxFloat)
+                if (effectCollision.x == _MaxFloat)
                 {
                     finalDir = rayDirection;
                 }
@@ -113,15 +122,18 @@ Shader"Unlit/BlackHole"
                     finalDir = RayMarch(rayOrigin, rayDirection);
                 }
                 // Determine distortion based on final ray direction
-                if (finalDir.x == 0 && finalDir.y == 0 && finalDir.z == 0)
+                if (length(finalDir) < 1)
                 {
-                    output.color = float4(0, 0, 0, 0);
+                    output = float4(0, 0, 0, 1);
+                    return output;
                 }
                 float4 rayToCamerSpace = mul(unity_WorldToCamera, float4(finalDir, 0));
                 float4 rayUVProjection = mul(unity_CameraProjection, float4(rayToCamerSpace));
+                rayUVProjection = normalize(rayUVProjection);
                 float2 finalScreen = float2(rayUVProjection.x / 2 + 0.5, rayUVProjection.y / 2 + 0.5);
                 
-                output.color = tex2D(_MainTex, finalScreen);
+                float3 preOutput = tex2D(_MainTex, finalScreen);
+                output = float4(preOutput, 1);
     
                 return output;
             }
