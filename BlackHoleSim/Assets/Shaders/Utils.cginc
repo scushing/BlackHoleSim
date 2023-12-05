@@ -1,7 +1,7 @@
 static const float maxFloat = 3.402823466e+38;
 
 // Returns 2D vector with first field being distance to sphere, and second being distance through the sphere
-float2 raySphereIntersection(float3 sphereCenter, float3 sphereRadius, float3 rayOrigin, float3 rayDirection)
+float2 raySphereIntersection(float3 sphereCenter, float sphereRadius, float3 rayOrigin, float3 rayDirection)
 {
     // Vector from sphere center to ray origin
     float3 sphereToRay = rayOrigin - sphereCenter;

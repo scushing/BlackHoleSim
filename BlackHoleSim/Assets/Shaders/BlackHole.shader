@@ -6,10 +6,6 @@ Shader"Unlit/BlackHole"
     Properties
     {
         _MainTex ("Texture", 2D) = "white" {}
-        _GravityScale ("Gravity Scale", Float) = 1.0
-        _SchwarzschildRadius ("Schwarzschild Radius", Float) = 1.0
-        _StepSize ("Step Size", Float) = 0.01
-        _MaxSteps ("Max Steps", Integer) = 1000
     }
 
     SubShader
@@ -28,8 +24,13 @@ Shader"Unlit/BlackHole"
             float4 _MainTex_ST;
             float _EffectRange;
             float _SchwarzschildRadius;
+            float _GravityScale;
             float _StepSize;
             float _MaxSteps;
+
+            const float _MaxFloat = 3.402823466e+38;
+            const float _GravitationalConstant = 6.6743e-11;
+            const float _SpeedOfLight = 299792458;
 
             struct appdata
             {
@@ -49,32 +50,34 @@ Shader"Unlit/BlackHole"
             };
 
             // Ray marching function
-            float RayMarch(float3 rayOrigin, float3 rayDirection)
+            float3 RayMarch(float3 rayOrigin, float3 rayDirection)
             {
-                float totalDistance = 0.0;
-                float maxDistance = 100.0; // Maximum distance to trace
-    
-                // Alter this
+                float3 currentPos = rayOrigin;
+                float3 currentDir = rayDirection;
+                float deltaT = _StepSize / _SpeedOfLight;
                 // Perform ray marching loop
-                for (int i = 0; i < 100; i++)
+                for (int i = 0; i < _MaxSteps; i++)
                 {
-                    float distance = /* Distance estimation function */ 1.0f;
-                    totalDistance += distance;
-
-                    if (totalDistance > maxDistance)
-                        break;
-        
                     // Update ray position
-                    float3 currentPos = rayOrigin + rayDirection * totalDistance;
-
-                    // TODO
-                    // Check collision or gravitational effects (e.g., distortion)
-        
-                    // TODO
-                    // Modify ray direction or apply gravitational effects
+                    currentPos = currentPos + currentDir * _StepSize;
+                    // Check for collision with event horizon
+                    float2 eventHorizonCollision = raySphereIntersection(float3(0, 0, 0), _SchwarzschildRadius, currentPos, currentDir);
+                    if (eventHorizonCollision.x < 0)
+                    {
+                        return float3(0, 0, 0);
+                    }
+                    // Check within effect range
+                    float2 effectRadiusCollision = raySphereIntersection(float3(0, 0, 0), _EffectRange, currentPos, currentDir);
+                    if (effectRadiusCollision.y < 0)
+                    {
+                        return currentDir;
+                    }
+                    // Get forces and update direction
+                    float accelerationMagnitude = _GravitationalConstant * _GravityScale / pow(length(currentPos), 2);
+                    float3 acceleration = -normalize(currentPos) * accelerationMagnitude;
+                    currentDir = normalize(currentDir + acceleration * deltaT);
                 }
-
-                return totalDistance;
+                return currentDir;
             }
 
             // Vertex shader function
@@ -95,13 +98,30 @@ Shader"Unlit/BlackHole"
                 float3 rayOrigin = _WorldSpaceCameraPos.xyz;
                 float3 rayDirection = normalize(_WorldSpaceCameraPos.xyz - input.vertex.xyz);
 
-                // Perform ray marching and get final distance
-                float finalDistance = RayMarch(rayOrigin, rayDirection);
-
-                // TODO
-                // Perform coloring or apply distortion effects based on distance or other parameters
-
-                output.color = float4(1, 1, 1, 1);
+                // Check for collision with effect radius
+                float2 effectCollision = raySphereIntersection(float3(0, 0, 0), _EffectRange, rayOrigin, rayDirection);
+                float3 finalDir;
+                if (effectCollision.x = _MaxFloat)
+                {
+                    finalDir = rayDirection;
+                }
+                else
+                {
+                    // Step ray to edge of effect radius
+                    rayOrigin += rayDirection * effectCollision.x;
+                    // Perform ray marching and get final distance
+                    finalDir = RayMarch(rayOrigin, rayDirection);
+                }
+                // Determine distortion based on final ray direction
+                if (finalDir.x == 0 && finalDir.y == 0 && finalDir.z == 0)
+                {
+                    output.color = float4(0, 0, 0, 0);
+                }
+                float4 rayToCamerSpace = mul(unity_WorldToCamera, float4(finalDir, 0));
+                float4 rayUVProjection = mul(unity_CameraProjection, float4(rayToCamerSpace));
+                float2 finalScreen = float2(rayUVProjection.x / 2 + 0.5, rayUVProjection.y / 2 + 0.5);
+                
+                output.color = tex2D(_MainTex, finalScreen);
     
                 return output;
             }
