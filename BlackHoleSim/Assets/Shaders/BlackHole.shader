@@ -4,9 +4,9 @@ Shader"Unlit/BlackHole"
     Properties
     {
         _MainTex ("Texture", 2D) = "white" {}
-        _EffectRange ("Effect Range", float) = 5
-        _MarchRange ("March Range", float) = 100
         _SchwarzschildRadius ("Schwarzschild Radius", float) = 1
+        _EffectEntryRange ("Effect Entry Range", float) = 5
+        _EffectRange ("Effect Range", float) = 10
         _GravitationalConstant ("Gravitational Const", float) = 1
         _StepSize ("Step Size", float) = 0.03
         _MaxSteps ("Max Steps", int) = 500
@@ -29,9 +29,11 @@ Shader"Unlit/BlackHole"
 
             sampler2D _MainTex;
             float4 _MainTex_ST;
-            float _EffectRange;
-            float _MarchRange;
+
             float _SchwarzschildRadius;
+            float _EffectEntryRange;
+            float _EffectRange;
+
             float _StepSize;
             float _MaxSteps;
 
@@ -94,7 +96,7 @@ Shader"Unlit/BlackHole"
                         return float3(0, 0, 0);
                     }
                     // Check within effect range
-                    float2 effectRadiusCollision = raySphereIntersection(center, _MarchRange, currentPos, currentDir);
+                    float2 effectRadiusCollision = raySphereIntersection(center, _EffectRange, currentPos, currentDir);
                     if (effectRadiusCollision.y < 0)
                     {
                         // Ray left effect range. Return ray
@@ -118,7 +120,7 @@ Shader"Unlit/BlackHole"
                 float3 center = float3(_PositionX, _PositionY, _PositionZ);
     
                 // Here intersection.x is distance to enter sphere, intersection.y is distance to exit
-                float2 intersection = raySphereIntersection(center, _EffectRange, rayOrigin, rayDirection);
+                float2 intersection = raySphereIntersection(center, _EffectEntryRange, rayOrigin, rayDirection);
     
                 // Ray unaffected
                 if (intersection.x > _MaxFloat - 1)
