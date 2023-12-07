@@ -1,5 +1,3 @@
-// Upgrade NOTE: replaced 'mul(UNITY_MATRIX_MVP,*)' with 'UnityObjectToClipPos(*)'
-
 Shader"Unlit/BlackHole"
 
 {
@@ -15,7 +13,7 @@ Shader"Unlit/BlackHole"
 
     SubShader
     {
-        LOD 100
+        Cull Off
 
         Pass {
             CGPROGRAM
@@ -33,109 +31,115 @@ Shader"Unlit/BlackHole"
             float _StepSize;
             float _MaxSteps;
 
+            float3 _Position = (0.1, 0.1, 0.1);
+
             const float _MaxFloat = 3.402823466e+38;
-            const float _GravitationalConstant = 0.4; //6.6743e-11;
+            const float _GravitationalConstant = 6.6743e-11;
             const float _SpeedOfLight = 299792458;
 
             struct appdata
             {
                 float4 vertex : POSITION;
-                float2 uv : TEXCOORD0;
+                float4 uv : TEXCOORD0;
             };
 
             struct v2f
             {
+                float4 pos : SV_POSITION;
                 float2 uv : TEXCOORD0;
-                float4 vertex : SV_Position;
-                float3 worldPos : TEXCOOR1;
-                float3 viewVector : TEXCOORD2;
+                float3 worldPos : TEXCOORD1;
+                float3 viewDir : TEXCOORD2;
             };
 
             // Vertex shader function
-            v2f vert(appdata input)
+            v2f vert(appdata i)
             {
-                v2f output;
-                output.vertex = UnityObjectToClipPos(input.vertex);
-                output.uv = input.uv;
-                output.worldPos = mul(unity_ObjectToWorld, input.vertex).xyz;
-    
-                float2 uv = input.uv * 2 - 1;
+                v2f o; 
+                // Clip position 
+                o.pos = UnityObjectToClipPos(i.vertex);
+                // World pos
+                o.worldPos = mul(unity_ObjectToWorld, i.vertex);
+                
+                float2 uv = i.uv * 2 - 1; // Re-maps the uv so that it is centered on the screen
                 float3 viewVector = mul(unity_CameraInvProjection, float4(uv.x, uv.y, 0, -1));
-                output.viewVector = mul(unity_CameraToWorld, float4(viewVector, 0));
-    
-                return output;
+                o.viewDir = mul(unity_CameraToWorld, float4(viewVector, 0));
+                
+                // Texture coords
+                o.uv = i.uv;
+
+                return o;
             }
 
             // Ray marching function
-            float3 RayMarch(float3 rayOrigin, float3 rayDirection)
+            float3 rayMarch(float3 center, float3 rayOrigin, float3 rayDirection)
             {
                 float3 currentPos = rayOrigin;
                 float3 currentDir = rayDirection;
-                float deltaT = _StepSize / _SpeedOfLight;
+                //float deltaT = _StepSize / _SpeedOfLight;
                 // Perform ray marching loop
                 for (int i = 0; i < _MaxSteps; i++)
                 {
                     // Update ray position
                     currentPos = currentPos + currentDir * _StepSize;
                     // Check for collision with event horizon
-                    float2 eventHorizonCollision = raySphereIntersection(float3(0, 0, 0), _SchwarzschildRadius, currentPos, currentDir);
+                    float2 eventHorizonCollision = raySphereIntersection(center, _SchwarzschildRadius, currentPos, currentDir);
                     if (eventHorizonCollision.x < 0)
                     {
+                        // Entered event horizon; returns zero vector to be caught outside function
                         return float3(0, 0, 0);
                     }
                     // Check within effect range
-                    float2 effectRadiusCollision = raySphereIntersection(float3(0, 0, 0), _EffectRange, currentPos, currentDir);
+                    float2 effectRadiusCollision = raySphereIntersection(center, _EffectRange, currentPos, currentDir);
                     if (effectRadiusCollision.y < 0)
                     {
-                        return currentDir;
+                        return currentPos;
                     }
                     // Get forces and update direction
                     float dist = length(currentPos);
                     float accelerationMagnitude = _GravitationalConstant * _GravityScale / (dist * dist);
-                    float3 acceleration = -normalize(currentPos) * accelerationMagnitude;
-                    currentDir = normalize(currentDir + acceleration * deltaT);
+                    float3 acceleration = normalize(center - currentPos) * accelerationMagnitude;
+                    currentDir = normalize(currentDir + acceleration * _StepSize);
                 }
-                return currentDir;
+                return currentPos;
             }
 
             // Fragment shader function
-            fixed4 frag(v2f input) : SV_Target
+            fixed4 frag(v2f i) : SV_Target
             {
-                float4 output;
+                float3 rayOrigin = _WorldSpaceCameraPos;
+                float3 rayDirection = normalize(i.viewDir);
     
-                // Calculate ray direction based on screen space coordinates
-                float3 rayOrigin = _WorldSpaceCameraPos.xyz;
-                float3 rayDirection = normalize(_WorldSpaceCameraPos.xyz - input.vertex.xyz);
-
-                // Check for collision with effect radius
-                float2 effectCollision = raySphereIntersection(float3(0, 0, 0), _EffectRange, rayOrigin, rayDirection);
-                float3 finalDir;
-                if (effectCollision.x == _MaxFloat)
+                float2 intersection = raySphereIntersection(_Position, _EffectRange, rayOrigin, rayDirection);
+    
+                // Ray unaffected
+                if (intersection.x > _MaxFloat - 1)
                 {
-                    finalDir = rayDirection;
+                    // Pixel color unchanged
+                    return tex2D(_MainTex, i.uv);
                 }
                 else
                 {
-                    // Step ray to edge of effect radius
-                    rayOrigin += rayDirection * effectCollision.x;
-                    // Perform ray marching and get final distance
-                    finalDir = RayMarch(rayOrigin, rayDirection);
+                    // Step forward to effect range
+                    float3 entryPoint = rayOrigin + rayDirection * intersection.x;
+                    // Iteratively march ray calculate path near black hole 
+                    float3 finalPos = rayMarch(_Position, entryPoint, rayDirection);
+                    // Smaller than normalized vector, ie. zero-vector case
+                    if (length(finalPos) < 0.1)
+                    {
+                        // Return black in case where ray enters event horizon
+                        return float4(0, 0, 0, 0);
+                    }
+                    // If hit, calculate distortion
+                    float3 finalDir = normalize(finalPos - rayOrigin);
+        
+                    float4 finalDirClipSpace = mul(unity_WorldToCamera, float4(finalDir, 0));
+                    float4 uvProjection = mul(unity_CameraProjection, finalDirClipSpace);
+                    float2 uv = float2(uvProjection.x / 2 + 0.5, uvProjection.y / 2 + 0.5);
+                    
+                    return tex2D(_MainTex, uv);
                 }
-                // Determine distortion based on final ray direction
-                if (length(finalDir) < 1)
-                {
-                    output = float4(0, 0, 0, 1);
-                    return output;
-                }
-                float4 rayToCamerSpace = mul(unity_WorldToCamera, float4(finalDir, 0));
-                float4 rayUVProjection = mul(unity_CameraProjection, float4(rayToCamerSpace));
-                rayUVProjection = normalize(rayUVProjection);
-                float2 finalScreen = float2(rayUVProjection.x / 2 + 0.5, rayUVProjection.y / 2 + 0.5);
-                
-                float3 preOutput = tex2D(_MainTex, finalScreen);
-                output = float4(preOutput, 1);
     
-                return output;
+                 
             }
             ENDCG
         }
