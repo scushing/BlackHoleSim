@@ -5,6 +5,7 @@ Shader"Unlit/BlackHole"
     {
         _MainTex ("Texture", 2D) = "white" {}
         _EffectRange ("Effect Range", float) = 5
+        _MarchRange ("March Range", float) = 10
         _SchwarzschildRadius ("Schwarzschild Radius", float) = 1
         _GravityScale ("Gravity Scale", float) = 1
         _StepSize ("Step Size", float) = 0.03
@@ -26,6 +27,7 @@ Shader"Unlit/BlackHole"
             sampler2D _MainTex;
             float4 _MainTex_ST;
             float _EffectRange;
+            float _MarchRange;
             float _SchwarzschildRadius;
             float _GravityScale;
             float _StepSize;
@@ -89,9 +91,10 @@ Shader"Unlit/BlackHole"
                         return float3(0, 0, 0);
                     }
                     // Check within effect range
-                    float2 effectRadiusCollision = raySphereIntersection(center, _EffectRange, currentPos, currentDir);
+                    float2 effectRadiusCollision = raySphereIntersection(center, _MarchRange, currentPos, currentDir);
                     if (effectRadiusCollision.y < 0)
                     {
+                        // Ray left effect range. Return ray
                         return currentPos;
                     }
                     // Get forces and update direction
@@ -134,9 +137,15 @@ Shader"Unlit/BlackHole"
         
                     float4 finalDirClipSpace = mul(unity_WorldToCamera, float4(finalDir, 0));
                     float4 uvProjection = mul(unity_CameraProjection, finalDirClipSpace);
-                    float2 uv = float2(uvProjection.x / 2 + 0.5, uvProjection.y / 2 + 0.5);
+                    float2 distortedUv = float2(uvProjection.x / 2 + 0.5, uvProjection.y / 2 + 0.5);
                     
-                    return tex2D(_MainTex, uv);
+        float blend = 0;
+        if (length(finalPos - _Position))
+        {
+            blend
+        }
+        
+                    return tex2D(_MainTex, distortedUv);
                 }
     
                  
