@@ -5,11 +5,14 @@ Shader"Unlit/BlackHole"
     {
         _MainTex ("Texture", 2D) = "white" {}
         _EffectRange ("Effect Range", float) = 5
-        _MarchRange ("March Range", float) = 10
+        _MarchRange ("March Range", float) = 100
         _SchwarzschildRadius ("Schwarzschild Radius", float) = 1
-        _GravityScale ("Gravity Scale", float) = 1
+        _GravitationalConstant ("Gravitational Const", float) = 1
         _StepSize ("Step Size", float) = 0.03
         _MaxSteps ("Max Steps", int) = 500
+        _PositionX ("Position X", float) = 0
+        _PositionY ("Position Y", float) = 0
+        _PositionZ ("Position Z", float) = 0
     }
 
     SubShader
@@ -29,15 +32,16 @@ Shader"Unlit/BlackHole"
             float _EffectRange;
             float _MarchRange;
             float _SchwarzschildRadius;
-            float _GravityScale;
             float _StepSize;
             float _MaxSteps;
 
-            float3 _Position = (0.1, 0.1, 0.1);
+            float _PositionX;
+            float _PositionY;
+            float _PositionZ;
 
             const float _MaxFloat = 3.402823466e+38;
-            const float _GravitationalConstant = 6.6743e-11;
-            const float _SpeedOfLight = 299792458;
+            const float _GravitationalConstant;
+            //const float _SpeedOfLight = 299792458;
 
             struct appdata
             {
@@ -77,7 +81,6 @@ Shader"Unlit/BlackHole"
             {
                 float3 currentPos = rayOrigin;
                 float3 currentDir = rayDirection;
-                //float deltaT = _StepSize / _SpeedOfLight;
                 // Perform ray marching loop
                 for (int i = 0; i < _MaxSteps; i++)
                 {
@@ -99,7 +102,7 @@ Shader"Unlit/BlackHole"
                     }
                     // Get forces and update direction
                     float dist = length(currentPos);
-                    float accelerationMagnitude = _GravitationalConstant * _GravityScale / (dist * dist);
+                    float accelerationMagnitude = _GravitationalConstant / (dist * dist);
                     float3 acceleration = normalize(center - currentPos) * accelerationMagnitude;
                     currentDir = normalize(currentDir + acceleration * _StepSize);
                 }
@@ -112,7 +115,10 @@ Shader"Unlit/BlackHole"
                 float3 rayOrigin = _WorldSpaceCameraPos;
                 float3 rayDirection = normalize(i.viewDir);
     
-                float2 intersection = raySphereIntersection(_Position, _EffectRange, rayOrigin, rayDirection);
+                float3 center = float3(_PositionX, _PositionY, _PositionZ);
+    
+                // Here intersection.x is distance to enter sphere, intersection.y is distance to exit
+                float2 intersection = raySphereIntersection(center, _EffectRange, rayOrigin, rayDirection);
     
                 // Ray unaffected
                 if (intersection.x > _MaxFloat - 1)
@@ -125,7 +131,7 @@ Shader"Unlit/BlackHole"
                     // Step forward to effect range
                     float3 entryPoint = rayOrigin + rayDirection * intersection.x;
                     // Iteratively march ray calculate path near black hole 
-                    float3 finalPos = rayMarch(_Position, entryPoint, rayDirection);
+                    float3 finalPos = rayMarch(center, entryPoint, rayDirection);
                     // Smaller than normalized vector, ie. zero-vector case
                     if (length(finalPos) < 0.1)
                     {
@@ -139,11 +145,12 @@ Shader"Unlit/BlackHole"
                     float4 uvProjection = mul(unity_CameraProjection, finalDirClipSpace);
                     float2 distortedUv = float2(uvProjection.x / 2 + 0.5, uvProjection.y / 2 + 0.5);
                     
-        float blend = 0;
-        if (length(finalPos - _Position))
-        {
-            blend
-        }
+                    // Blending the edge so there is the border transitions more smoothly
+                    float blendAmount = 0;
+                    if (length(finalPos - center))
+                    {
+                        //blend
+                    }
         
                     return tex2D(_MainTex, distortedUv);
                 }
