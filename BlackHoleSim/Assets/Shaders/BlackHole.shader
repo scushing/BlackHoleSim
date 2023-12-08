@@ -5,10 +5,10 @@ Shader"Unlit/BlackHole"
     {
         _MainTex ("Texture", 2D) = "white" {}
         _SchwarzschildRadius ("Schwarzschild Radius", float) = 1
-        _EffectEntryRange ("Effect Entry Range", float) = 5
-        _EffectRange ("Effect Range", float) = 10
+        _EffectRange ("Effect Entry Range", float) = 5
+        _BlurRange ("Blur Range", float) = 1
         _GravitationalConstant ("Gravitational Const", float) = 0.6
-        _StepSize ("Step Size", float) = 0.03
+        _StepSize ("Step Size", float) = 0.1
         _MaxSteps ("Max Steps", int) = 1000
         _PositionX ("Position X", float) = 0
         _PositionY ("Position Y", float) = 0
@@ -29,8 +29,8 @@ Shader"Unlit/BlackHole"
             float4 _MainTex_ST;
 
             float _SchwarzschildRadius;
-            float _EffectEntryRange;
             float _EffectRange;
+            float _BlurRange;
 
             float _StepSize;
             float _MaxSteps;
@@ -79,6 +79,7 @@ Shader"Unlit/BlackHole"
             }
 
             // Ray marching function
+            // Iteratively euler updates ray until it enters the event horizon, leaves the effect range, or takes max steps
             float3 rayMarch(float3 center, float3 rayOrigin, float3 rayDirection)
             {
                 float3 currentPos = rayOrigin;
@@ -101,7 +102,7 @@ Shader"Unlit/BlackHole"
                     if (effectRadiusCollision.x > 0)
                     {
                         // Ray left effect range. Return ray
-                        return currentDir * 100 + currentPos;
+                        return currentPos;
                     }
                     // Get forces and update direction
                     float dist = length(currentPos - center);
@@ -109,7 +110,7 @@ Shader"Unlit/BlackHole"
                     float3 acceleration = normalize(center - currentPos) * accelerationMagnitude;
                     currentDir = normalize(currentDir + acceleration * _StepSize);
                 }
-                return currentDir * 100 + currentPos;
+                return currentPos;
             }
 
             // Fragment shader function
@@ -121,7 +122,7 @@ Shader"Unlit/BlackHole"
                 float3 center = float3(_PositionX, _PositionY, _PositionZ);
     
                 // Here intersection.x is distance to enter sphere, intersection.y is distance to exit
-                float2 intersection = raySphereIntersection(center, _EffectEntryRange, rayOrigin, rayDirection);
+                float2 intersection = raySphereIntersection(center, _EffectRange, rayOrigin, rayDirection);
     
                 // Ray unaffected
                 if (intersection.x > _MaxFloat - _Epsilon)
@@ -132,24 +133,34 @@ Shader"Unlit/BlackHole"
                 else
                 {
                     // Step forward to effect range
-                    float3 entryPoint = rayOrigin; // + rayDirection * -intersection.y;
-                    // Iteratively march ray calculate path near black hole 
+                    float3 entryPoint = rayOrigin + rayDirection * -intersection.y;
+                    // March ray calculate path near black hole 
                     float3 finalPos = rayMarch(center, entryPoint, rayDirection);
                     // Smaller than normalized vector, ie. zero-vector case
-                    if (length(finalPos) < 0.1)
+                    if (length(finalPos) < _StepSize)
                     {
                         // Return black in case where ray enters event horizon
                         return float4(0, 0, 0, 0);
                     }
-                    // If hit, calculate distortion
-                    float3 finalDir = finalPos; //(finalPos - rayOrigin);
-        
+                    float3 finalDir = (finalPos - rayOrigin);
+                    // Convert the final direction to camera uv
                     float4 clipPos = mul(unity_CameraProjection, mul(unity_WorldToCamera, float4(finalPos, 1.0)));
                     clipPos /= clipPos.w;
+                    float2 distortedUv = float2((clipPos.x + 1.0) * 0.5, (clipPos.y + 1.0) * 0.5);
         
-                    float2 uv = float2((clipPos.x + 1.0) * 0.5, (clipPos.y + 1.0) * 0.5);
-        
-                    return tex2D(_MainTex, float2(1.0 - uv.x, 1.0 - uv.y));
+                    // If close to edge, blur (otherwise edge of effect range can have sharp contrast)
+                    float blurIntensity = intersection.y - length(center - rayOrigin);
+                    float2 uv;
+                    if (abs(blurIntensity) < _BlurRange)
+                    {
+                        uv = lerp(distortedUv, i.uv, abs(blurIntensity) / _BlurRange);
+                    }
+                    else
+                    {
+                        uv = float2(1.0 - distortedUv.x, 1.0 - distortedUv.y);
+                    }
+                    
+                    return tex2D(_MainTex, uv);
                 }
                  
             }
