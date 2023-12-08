@@ -66,15 +66,15 @@ Material:
     - _Debug: 0
     - _DetailNormalMapScale: 1
     - _DstBlend: 0
-    - _EffectEntryRange: 10
-    - _EffectRange: 20
+    - _EffectEntryRange: 8
+    - _EffectRange: 10
     - _GlossMapScale: 1
     - _Glossiness: 0.5
     - _GlossyReflections: 1
-    - _GravitationalConstant: 0.9
+    - _GravitationalConstant: 0.5
     - _GravityScale: 1
     - _MarchRange: 10
-    - _MaxSteps: 500
+    - _MaxSteps: 300
     - _Metallic: 0
     - _Mode: 0
     - _OcclusionStrength: 1
@@ -82,11 +82,11 @@ Material:
     - _PositionX: 0
     - _PositionY: 0
     - _PositionZ: 0
-    - _SchwarzschildRadius: 1
+    - _SchwarzschildRadius: 0.5
     - _SmoothnessTextureChannel: 0
     - _SpecularHighlights: 1
     - _SrcBlend: 1
-    - _StepSize: 0.01
+    - _StepSize: 0.2
     - _UVSec: 0
     - _ZWrite: 1
     m_Colors:
