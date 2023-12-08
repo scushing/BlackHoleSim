@@ -7,7 +7,7 @@ Shader"Unlit/BlackHole"
         _SchwarzschildRadius ("Schwarzschild Radius", float) = 1
         _EffectEntryRange ("Effect Entry Range", float) = 5
         _EffectRange ("Effect Range", float) = 10
-        _GravitationalConstant ("Gravitational Const", float) = 0.000000000066743
+        _GravitationalConstant ("Gravitational Const", float) = 0.6
         _StepSize ("Step Size", float) = 0.03
         _MaxSteps ("Max Steps", int) = 1000
         _PositionX ("Position X", float) = 0
@@ -79,7 +79,7 @@ Shader"Unlit/BlackHole"
             }
 
             // Ray marching function
-            float3 rayMarch(float3 center, float3 rayOrigin, float3 rayDirection, bool debug)
+            float3 rayMarch(float3 center, float3 rayOrigin, float3 rayDirection)
             {
                 float3 currentPos = rayOrigin;
                 float3 currentDir = rayDirection;
@@ -98,7 +98,7 @@ Shader"Unlit/BlackHole"
                     }
                     // Check within effect range
                     float2 effectRadiusCollision = raySphereIntersection(center, _EffectRange, currentPos, currentDir);
-                    if (effectRadiusCollision.y < 0)
+                    if (effectRadiusCollision.x > 0)
                     {
                         // Ray left effect range. Return ray
                         return currentPos;
@@ -120,13 +120,11 @@ Shader"Unlit/BlackHole"
     
                 float3 center = float3(_PositionX, _PositionY, _PositionZ);
     
-                bool debug = (i.uv.x - 0.25 < _Epsilon && i.uv.y - 0.25 < _Epsilon);
-    
                 // Here intersection.x is distance to enter sphere, intersection.y is distance to exit
                 float2 intersection = raySphereIntersection(center, _EffectEntryRange, rayOrigin, rayDirection);
     
                 // Ray unaffected
-                if (intersection.x > _MaxFloat - 1)
+                if (intersection.x > _MaxFloat - _Epsilon)
                 {
                     // Pixel color unchanged
                     return tex2D(_MainTex, i.uv);
@@ -134,13 +132,9 @@ Shader"Unlit/BlackHole"
                 else
                 {
                     // Step forward to effect range
-                    float3 entryPoint = rayOrigin + rayDirection * intersection.x;
-        if (debug)
-        {
-            
-        }
+                    float3 entryPoint = rayOrigin + rayDirection * -intersection.y;
                     // Iteratively march ray calculate path near black hole 
-                    float3 finalPos = rayMarch(center, entryPoint, rayDirection, debug);
+                    float3 finalPos = rayMarch(center, entryPoint, rayDirection);
                     // Smaller than normalized vector, ie. zero-vector case
                     if (length(finalPos) < 0.1)
                     {

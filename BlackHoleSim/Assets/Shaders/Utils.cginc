@@ -32,14 +32,3 @@ float2 raySphereIntersection(float3 sphereCenter, float sphereRadius, float3 ray
         return float2(distToSphere, distThroughSphere);
     }
 }
-
-float invLerp(float from, float to, float value)
-{
-    return (value - from) / (to - from);
-}
-
-float remap(float origFrom, float origTo, float targetFrom, float targetTo, float value)
-{
-    float rel = invLerp(origFrom, origTo, value);
-    return lerp(targetFrom, targetTo, rel);
-}
