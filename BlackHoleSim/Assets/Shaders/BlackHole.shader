@@ -101,7 +101,7 @@ Shader"Unlit/BlackHole"
                     if (effectRadiusCollision.x > 0)
                     {
                         // Ray left effect range. Return ray
-                        return currentDir;
+                        return currentDir * 100 + currentPos;
                     }
                     // Get forces and update direction
                     float dist = length(currentPos - center);
@@ -109,7 +109,7 @@ Shader"Unlit/BlackHole"
                     float3 acceleration = normalize(center - currentPos) * accelerationMagnitude;
                     currentDir = normalize(currentDir + acceleration * _StepSize);
                 }
-                return currentDir;
+                return currentDir * 100 + currentPos;
             }
 
             // Fragment shader function

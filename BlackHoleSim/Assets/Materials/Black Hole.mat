@@ -63,14 +63,15 @@ Material:
     m_Floats:
     - _BumpScale: 1
     - _Cutoff: 0.5
+    - _Debug: 0
     - _DetailNormalMapScale: 1
     - _DstBlend: 0
-    - _EffectEntryRange: 5
-    - _EffectRange: 100
+    - _EffectEntryRange: 10
+    - _EffectRange: 20
     - _GlossMapScale: 1
     - _Glossiness: 0.5
     - _GlossyReflections: 1
-    - _GravitationalConstant: 6.6743e-11
+    - _GravitationalConstant: 0.9
     - _GravityScale: 1
     - _MarchRange: 10
     - _MaxSteps: 500
@@ -85,7 +86,7 @@ Material:
     - _SmoothnessTextureChannel: 0
     - _SpecularHighlights: 1
     - _SrcBlend: 1
-    - _StepSize: 0.003
+    - _StepSize: 0.01
     - _UVSec: 0
     - _ZWrite: 1
     m_Colors:

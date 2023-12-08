@@ -14,7 +14,6 @@ public class RayVisualization : MonoBehaviour
     {
         // Origin
         Gizmos.color = Color.green;
-        Gizmos.DrawSphere(transform.position, 0.5f);
         Vector3 currentPos = transform.position;
         Vector3 currentDir = Vector3.Normalize(dir.transform.position - transform.position);
         Vector2 intersection = RaySphereIntersection(5 * singularity.GetSchwarzschildRadius,
