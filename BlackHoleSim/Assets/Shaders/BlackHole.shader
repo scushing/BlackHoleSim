@@ -68,7 +68,7 @@ Shader"Unlit/BlackHole"
                 // World pos
                 o.worldPos = mul(unity_ObjectToWorld, i.vertex);
                 
-                float2 uv = i.uv * 2 - 1; // Re-maps the uv so that it is centered on the screen
+                float2 uv = i.uv * 2 - 1;
                 float3 viewVector = mul(unity_CameraInvProjection, float4(uv.x, uv.y, 0, -1));
                 o.viewDir = mul(unity_CameraToWorld, float4(viewVector, 0));
                 
@@ -101,7 +101,7 @@ Shader"Unlit/BlackHole"
                     if (effectRadiusCollision.x > 0)
                     {
                         // Ray left effect range. Return ray
-                        return currentPos;
+                        return currentDir;
                     }
                     // Get forces and update direction
                     float dist = length(currentPos - center);
@@ -109,7 +109,7 @@ Shader"Unlit/BlackHole"
                     float3 acceleration = normalize(center - currentPos) * accelerationMagnitude;
                     currentDir = normalize(currentDir + acceleration * _StepSize);
                 }
-                return currentPos;
+                return currentDir;
             }
 
             // Fragment shader function
@@ -132,7 +132,7 @@ Shader"Unlit/BlackHole"
                 else
                 {
                     // Step forward to effect range
-                    float3 entryPoint = rayOrigin + rayDirection * -intersection.y;
+                    float3 entryPoint = rayOrigin; // + rayDirection * -intersection.y;
                     // Iteratively march ray calculate path near black hole 
                     float3 finalPos = rayMarch(center, entryPoint, rayDirection);
                     // Smaller than normalized vector, ie. zero-vector case
@@ -142,16 +142,15 @@ Shader"Unlit/BlackHole"
                         return float4(0, 0, 0, 0);
                     }
                     // If hit, calculate distortion
-                    float3 finalDir = (finalPos - rayOrigin);
+                    float3 finalDir = finalPos; //(finalPos - rayOrigin);
         
-                    float4 finalDirClipSpace = mul(unity_WorldToCamera, float4(finalDir, 0));
-                    float4 uvProjection = mul(unity_CameraProjection, finalDirClipSpace);
-                    float2 distortedUv = float2(uvProjection.x / 2 + 0.5, uvProjection.y / 2 + 0.5);
-                    
-                    // Blending the edge so there is the border transitions more smoothly
-                    return tex2D(_MainTex, distortedUv);
+                    float4 clipPos = mul(unity_CameraProjection, mul(unity_WorldToCamera, float4(finalPos, 1.0)));
+                    clipPos /= clipPos.w;
+        
+                    float2 uv = float2((clipPos.x + 1.0) * 0.5, (clipPos.y + 1.0) * 0.5);
+        
+                    return tex2D(_MainTex, float2(1.0 - uv.x, 1.0 - uv.y));
                 }
-    
                  
             }
             ENDCG
