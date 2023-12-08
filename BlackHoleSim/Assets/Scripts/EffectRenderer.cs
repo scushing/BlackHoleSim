@@ -8,13 +8,20 @@ using UnityEngine;
 [ImageEffectAllowedInSceneView]
 public class MyEffectRenderer : MonoBehaviour
 {
-    public Material material;
+    public List<Material> materials;
 
     private void OnRenderImage(RenderTexture source, RenderTexture destination)
     {
-        if (material != null)
+        if (materials != null && materials.Count != 0)
         {
-            Graphics.Blit(source, destination, material);
+            RenderTexture tmp = RenderTexture.GetTemporary(source.width, source.height, 0, source.format);
+            foreach (Material material in materials)
+            {
+                Graphics.Blit(source, tmp, material);
+                Graphics.Blit(tmp, source);
+            }
+            Graphics.Blit(source, destination);
+            RenderTexture.ReleaseTemporary(tmp);
         }
         else
         {

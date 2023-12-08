@@ -7,9 +7,9 @@ Shader"Unlit/BlackHole"
         _SchwarzschildRadius ("Schwarzschild Radius", float) = 1
         _EffectEntryRange ("Effect Entry Range", float) = 5
         _EffectRange ("Effect Range", float) = 10
-        _GravitationalConstant ("Gravitational Const", float) = 1
+        _GravitationalConstant ("Gravitational Const", float) = 0.000000000066743
         _StepSize ("Step Size", float) = 0.03
-        _MaxSteps ("Max Steps", int) = 500
+        _MaxSteps ("Max Steps", int) = 1000
         _PositionX ("Position X", float) = 0
         _PositionY ("Position Y", float) = 0
         _PositionZ ("Position Z", float) = 0
@@ -17,8 +17,6 @@ Shader"Unlit/BlackHole"
 
     SubShader
     {
-        Cull Off
-
         Pass {
             CGPROGRAM
             #pragma vertex vert
@@ -43,7 +41,9 @@ Shader"Unlit/BlackHole"
 
             const float _MaxFloat = 3.402823466e+38;
             const float _GravitationalConstant;
-            //const float _SpeedOfLight = 299792458;
+            const float _SpeedOfLight = 299792458;
+
+            const float _Epsilon = 0.001;
 
             struct appdata
             {
@@ -79,10 +79,11 @@ Shader"Unlit/BlackHole"
             }
 
             // Ray marching function
-            float3 rayMarch(float3 center, float3 rayOrigin, float3 rayDirection)
+            float3 rayMarch(float3 center, float3 rayOrigin, float3 rayDirection, bool debug)
             {
                 float3 currentPos = rayOrigin;
                 float3 currentDir = rayDirection;
+                float deltaT = _StepSize / _SpeedOfLight;
                 // Perform ray marching loop
                 for (int i = 0; i < _MaxSteps; i++)
                 {
@@ -90,7 +91,7 @@ Shader"Unlit/BlackHole"
                     currentPos = currentPos + currentDir * _StepSize;
                     // Check for collision with event horizon
                     float2 eventHorizonCollision = raySphereIntersection(center, _SchwarzschildRadius, currentPos, currentDir);
-                    if (eventHorizonCollision.x < 0)
+                    if (eventHorizonCollision.x < _StepSize)
                     {
                         // Entered event horizon; returns zero vector to be caught outside function
                         return float3(0, 0, 0);
@@ -103,7 +104,7 @@ Shader"Unlit/BlackHole"
                         return currentPos;
                     }
                     // Get forces and update direction
-                    float dist = length(currentPos);
+                    float dist = length(currentPos - center);
                     float accelerationMagnitude = _GravitationalConstant / (dist * dist);
                     float3 acceleration = normalize(center - currentPos) * accelerationMagnitude;
                     currentDir = normalize(currentDir + acceleration * _StepSize);
@@ -119,6 +120,8 @@ Shader"Unlit/BlackHole"
     
                 float3 center = float3(_PositionX, _PositionY, _PositionZ);
     
+                bool debug = (i.uv.x - 0.25 < _Epsilon && i.uv.y - 0.25 < _Epsilon);
+    
                 // Here intersection.x is distance to enter sphere, intersection.y is distance to exit
                 float2 intersection = raySphereIntersection(center, _EffectEntryRange, rayOrigin, rayDirection);
     
@@ -132,8 +135,12 @@ Shader"Unlit/BlackHole"
                 {
                     // Step forward to effect range
                     float3 entryPoint = rayOrigin + rayDirection * intersection.x;
+        if (debug)
+        {
+            
+        }
                     // Iteratively march ray calculate path near black hole 
-                    float3 finalPos = rayMarch(center, entryPoint, rayDirection);
+                    float3 finalPos = rayMarch(center, entryPoint, rayDirection, debug);
                     // Smaller than normalized vector, ie. zero-vector case
                     if (length(finalPos) < 0.1)
                     {
@@ -141,19 +148,13 @@ Shader"Unlit/BlackHole"
                         return float4(0, 0, 0, 0);
                     }
                     // If hit, calculate distortion
-                    float3 finalDir = normalize(finalPos - rayOrigin);
+                    float3 finalDir = (finalPos - rayOrigin);
         
                     float4 finalDirClipSpace = mul(unity_WorldToCamera, float4(finalDir, 0));
                     float4 uvProjection = mul(unity_CameraProjection, finalDirClipSpace);
                     float2 distortedUv = float2(uvProjection.x / 2 + 0.5, uvProjection.y / 2 + 0.5);
                     
                     // Blending the edge so there is the border transitions more smoothly
-                    float blendAmount = 0;
-                    if (length(finalPos - center))
-                    {
-                        //blend
-                    }
-        
                     return tex2D(_MainTex, distortedUv);
                 }
     
