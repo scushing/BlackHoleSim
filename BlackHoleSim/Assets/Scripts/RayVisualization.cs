@@ -36,12 +36,6 @@ public class RayVisualization : MonoBehaviour
             Gizmos.DrawSphere(currentPos, 0.05f);
             // Check for collision with event horizon
             Vector2 eventHorizonCollision = RaySphereIntersection(singularity.GetSchwarzschildRadius, singularity.transform.position, currentPos, currentDir);
-            if (eventHorizonCollision.x < stepSize)
-            {
-                // Entered event horizon; returns zero vector to be caught outside function
-                return;
-            }
-            // Check within effect range
             Vector2 effectRadiusCollision = RaySphereIntersection(5 * singularity.GetSchwarzschildRadius, singularity.transform.position, currentPos, currentDir);
             if (effectRadiusCollision.x > 0)
             {
@@ -51,7 +45,7 @@ public class RayVisualization : MonoBehaviour
             }
             // Get forces and update direction
             float dist = Vector3.Magnitude(currentPos - singularity.transform.position);
-            float accelerationMagnitude = 0.9f / (dist * dist);
+            float accelerationMagnitude = 0.5f / (dist * dist);
             Vector3 acceleration = Vector3.Normalize(singularity.transform.position - currentPos) * accelerationMagnitude;
             currentDir = Vector3.Normalize(currentDir + acceleration * stepSize);
         }

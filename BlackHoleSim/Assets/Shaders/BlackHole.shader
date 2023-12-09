@@ -90,13 +90,6 @@ Shader"Unlit/BlackHole"
                 {
                     // Update ray position
                     currentPos = currentPos + currentDir * _StepSize;
-                    // Check for collision with event horizon
-                    float2 eventHorizonCollision = raySphereIntersection(center, _SchwarzschildRadius, currentPos, currentDir);
-                    if (eventHorizonCollision.x < _StepSize)
-                    {
-                        // Entered event horizon; returns zero vector to be caught outside function
-                        return float3(0, 0, 0);
-                    }
                     // Check within effect range
                     float2 effectRadiusCollision = raySphereIntersection(center, _EffectRange, currentPos, currentDir);
                     if (effectRadiusCollision.x > 0)
@@ -137,7 +130,7 @@ Shader"Unlit/BlackHole"
                     // March ray calculate path near black hole 
                     float3 finalPos = rayMarch(center, entryPoint, rayDirection);
                     // Smaller than normalized vector, ie. zero-vector case
-                    if (length(finalPos) < _StepSize)
+                    if (length(finalPos - center) < _StepSize)
                     {
                         // Return black in case where ray enters event horizon
                         return float4(0, 0, 0, 0);
