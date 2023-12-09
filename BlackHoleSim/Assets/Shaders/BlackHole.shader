@@ -5,9 +5,9 @@ Shader"Unlit/BlackHole"
     {
         _MainTex ("Texture", 2D) = "white" {}
         _SchwarzschildRadius ("Schwarzschild Radius", float) = 1
-        _EffectRange ("Effect Entry Range", float) = 5
-        _BlurRange ("Blur Range", float) = 1
-        _GravitationalConstant ("Gravitational Const", float) = 0.6
+        //_EffectRange ("Effect Entry Range", float) = 5
+        //_BlurRange ("Blur Range", float) = 1
+        _GravitationalConstant ("Gravitational Const", float) = 0.000000000066743
         _StepSize ("Step Size", float) = 0.1
         _MaxSteps ("Max Steps", int) = 1000
         _PositionX ("Position X", float) = 0
@@ -28,6 +28,8 @@ Shader"Unlit/BlackHole"
             sampler2D _MainTex;
             float4 _MainTex_ST;
 
+            // Mutable to more easily make more visible
+            float _GravitationalConstant;
             float _SchwarzschildRadius;
             float _EffectRange;
             float _BlurRange;
@@ -40,7 +42,6 @@ Shader"Unlit/BlackHole"
             float _PositionZ;
 
             const float _MaxFloat = 3.402823466e+38;
-            const float _GravitationalConstant;
             const float _SpeedOfLight = 299792458;
 
             const float _Epsilon = 0.001;
@@ -84,7 +85,6 @@ Shader"Unlit/BlackHole"
             {
                 float3 currentPos = rayOrigin;
                 float3 currentDir = rayDirection;
-                float deltaT = _StepSize / _SpeedOfLight;
                 // Perform ray marching loop
                 for (int i = 0; i < _MaxSteps; i++)
                 {
@@ -99,7 +99,9 @@ Shader"Unlit/BlackHole"
                     }
                     // Get forces and update direction
                     float dist = length(currentPos - center);
-                    float accelerationMagnitude = _GravitationalConstant / (dist * dist);
+                    // Using Schwarzchild Radius instead of mass is to prevent floating point errors
+                    // Has same effect when scaling because they scale to each other linearly (radius = 2 * G * Mass / dist^2)
+                    float accelerationMagnitude = _GravitationalConstant * _SchwarzschildRadius / (dist * dist);
                     float3 acceleration = normalize(center - currentPos) * accelerationMagnitude;
                     currentDir = normalize(currentDir + acceleration * _StepSize);
                 }
@@ -109,6 +111,8 @@ Shader"Unlit/BlackHole"
             // Fragment shader function
             fixed4 frag(v2f i) : SV_Target
             {
+                _EffectRange = 8 * _SchwarzschildRadius;
+                _BlurRange = _SchwarzschildRadius;
                 float3 rayOrigin = _WorldSpaceCameraPos;
                 float3 rayDirection = normalize(i.viewDir);
     

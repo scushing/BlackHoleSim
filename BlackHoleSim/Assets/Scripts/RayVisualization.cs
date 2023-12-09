@@ -5,18 +5,18 @@ public class RayVisualization : MonoBehaviour
 {
     public Transform dir;
     public Singularity singularity;
+    public float gravitationalConst = 0.000000000066743f;
     public float stepSize;
     public float maxSteps;
 
-    const float speedOfLight = 299792458;
-    const float gravitationalConst = 0.000000000066743f;
     private void OnDrawGizmos()
     {
         // Origin
         Gizmos.color = Color.green;
+        float effectRadius = 8 * singularity.GetSchwarzschildRadius;
         Vector3 currentPos = transform.position;
         Vector3 currentDir = Vector3.Normalize(dir.transform.position - transform.position);
-        Vector2 intersection = RaySphereIntersection(5 * singularity.GetSchwarzschildRadius,
+        Vector2 intersection = RaySphereIntersection(effectRadius,
             singularity.transform.position, currentPos, currentDir);
         if (intersection.x == Mathf.Infinity)
         {
@@ -24,19 +24,16 @@ public class RayVisualization : MonoBehaviour
             return;
         }
         Gizmos.DrawLine(currentPos, currentPos + currentDir * -intersection.y);
+        // Steps ray forward to effect radius
         currentPos += currentDir * -intersection.y;
-
-        float deltaT = stepSize / speedOfLight;
         // Perform ray marching loop
         for (int i = 0; i < maxSteps; i++)
         {
             // Update ray position
             Gizmos.DrawLine(currentPos, currentPos + currentDir * stepSize);
-            currentPos = currentPos + currentDir * stepSize;
+            currentPos += currentDir * stepSize;
             Gizmos.DrawSphere(currentPos, 0.05f);
-            // Check for collision with event horizon
-            Vector2 eventHorizonCollision = RaySphereIntersection(singularity.GetSchwarzschildRadius, singularity.transform.position, currentPos, currentDir);
-            Vector2 effectRadiusCollision = RaySphereIntersection(5 * singularity.GetSchwarzschildRadius, singularity.transform.position, currentPos, currentDir);
+            Vector2 effectRadiusCollision = RaySphereIntersection(effectRadius, singularity.transform.position, currentPos, currentDir);
             if (effectRadiusCollision.x > 0)
             {
                 // Ray left effect range. Return ray
@@ -45,8 +42,10 @@ public class RayVisualization : MonoBehaviour
             }
             // Get forces and update direction
             float dist = Vector3.Magnitude(currentPos - singularity.transform.position);
-            float accelerationMagnitude = 0.5f / (dist * dist);
+            // See shader for logic behind these values
+            float accelerationMagnitude = gravitationalConst * singularity.GetSchwarzschildRadius / (dist * dist);
             Vector3 acceleration = Vector3.Normalize(singularity.transform.position - currentPos) * accelerationMagnitude;
+            // Using step size instead of delta time to reduce chance of floating point errors
             currentDir = Vector3.Normalize(currentDir + acceleration * stepSize);
         }
     }
