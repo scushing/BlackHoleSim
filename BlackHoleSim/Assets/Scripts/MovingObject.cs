@@ -16,6 +16,7 @@ public class MovingObject : MonoBehaviour
     {
         position = transform.position;
         velocity = calculateVelocity(singularity.transform.position, f2.transform.position, transform.position);
+        //Debug.Log("Velocity: " + velocity);
     }
 
     // Update is called once per frame
@@ -23,7 +24,8 @@ public class MovingObject : MonoBehaviour
     {
         // perform Euler Updates on the object
         position += velocity * Time.deltaTime;
-        Debug.Log("Position: " + position);
+        Debug.Log("Velcity: " + velocity);
+
         transform.position = position;
         
         // calculate the force on the object
@@ -38,24 +40,36 @@ public class MovingObject : MonoBehaviour
         Vector3 v1, v2;
         v1 = f1 - position;
         v2 = f2 - position;
-        Vector3 normal = Vector3.Cross(v1, v2);
-        normal = normal.normalized;
 
-        Vector2 pos2D = ConvertTo2DCoordinates(position, f1, normal);
-        Vector2 f1_2D = ConvertTo2DCoordinates(f1, f1, normal);
-        Vector2 f2_2D = ConvertTo2DCoordinates(f2, f1, normal);
+        // if (Vector3.Magnitude(v2 - v1) < 0.01f) {
+        //     v1.x += 0.01f;
+        //     v2.y += 0.01f;
+        // }
+        // Vector3 normal = Vector3.Cross(v1, v2);
+        // normal = normal.normalized;
+        // Debug.Log("Normal: " + normal);
 
-        Vector2 elipse_normal = -((f2_2D - pos2D) + (f1_2D - pos2D)).normalized;
-        Vector2 elipse_tangent = new Vector2(-elipse_normal.y, elipse_normal.x);
-        if (Vector2.Dot(elipse_tangent, f1_2D - pos2D) < 0.0f) {
+        // Vector2 pos2D = ConvertTo2DCoordinates(position, f1, normal);
+        // Vector2 f1_2D = ConvertTo2DCoordinates(f1, f1, normal);
+        // Vector2 f2_2D = ConvertTo2DCoordinates(f2, f1, normal);
+        // Debug.Log("Position 2D: " + pos2D);
+        // Debug.Log("F1 2D: " + f1_2D);
+        // Debug.Log("F2 2D: " + f2_2D);
+
+        Vector3 elipse_normal = -((f2 - position) + (f1 - position)).normalized;
+        Vector3 elipse_tangent = new Vector3(-elipse_normal.z, 0, elipse_normal.x);
+        if (Vector3.Dot(elipse_tangent, f1 - position) < 0.0f) {
             elipse_tangent = -elipse_tangent;
         }
+        Debug.Log("Elipse Tangent: " + elipse_tangent);
 
-        float a = Vector2.Distance(f1_2D, pos2D) + Vector2.Distance(f2_2D, pos2D);
-        float speed = Mathf.Sqrt(G * mass * (2/Vector3.Magnitude(position - f1) - 1/a));
+        float a = Vector3.Distance(f1, position) + Vector3.Distance(f2, position);
+        float speed = Mathf.Sqrt(G * singularity.Mass * (2/Vector3.Magnitude(position - f1) - 1/a));
 
-        Vector3 elipse_tangent_3D = ConvertTo3DCoordinates(elipse_tangent, f1, normal);
-        return elipse_tangent_3D * speed;
+        // elipse_tangent_3D = ConvertTo3DCoordinates(elipse_tangent, f1, normal);
+        Debug.Log("Elipse Tangent 3D: " + elipse_tangent);
+        Debug.Log("Speed: " + speed);
+        return elipse_tangent * speed;
     }
     public static Vector2 ConvertTo2DCoordinates(Vector3 position, Vector3 planeOrigin, Vector3 planeNormal)
     {
