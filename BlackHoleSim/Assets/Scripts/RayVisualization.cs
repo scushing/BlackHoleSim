@@ -21,6 +21,7 @@ public class RayVisualization : MonoBehaviour
         if (intersection.x == Mathf.Infinity)
         {
             // Ray misses effect sphere
+            Gizmos.DrawLine(currentPos, dir.position);
             return;
         }
         Gizmos.DrawLine(currentPos, currentPos + currentDir * -intersection.y);
@@ -37,7 +38,7 @@ public class RayVisualization : MonoBehaviour
             if (effectRadiusCollision.x > 0)
             {
                 // Ray left effect range. Return ray
-                Gizmos.DrawLine(currentPos, currentDir * 20);
+                Gizmos.DrawLine(currentPos, currentPos + currentDir * 20);
                 return;
             }
             // Get forces and update direction
