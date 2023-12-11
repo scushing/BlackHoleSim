@@ -5,8 +5,9 @@ using UnityEngine;
 // Points camera towards origin
 public class CenterCamera : MonoBehaviour
 {
+    public Transform center;
     void FixedUpdate()
     {
-        this.transform.forward = -this.transform.position;
+        this.transform.forward = (center.position - this.transform.position);
     }
 }

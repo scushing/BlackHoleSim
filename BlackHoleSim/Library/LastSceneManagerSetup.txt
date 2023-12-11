@@ -1,9 +1,5 @@
 sceneSetups:
-<<<<<<< HEAD
-- path: Assets/Scenes/FinalSceneSetUp.unity
-=======
-- path: Assets/Scenes/ElipticalBHView_Planets.unity
->>>>>>> physics-vis
+- path: Assets/Scenes/FinalSceneSetUp_AlternateView.unity
   isLoaded: 1
   isActive: 1
   isSubScene: 0
