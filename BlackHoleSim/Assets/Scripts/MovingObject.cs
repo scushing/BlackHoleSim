@@ -11,12 +11,10 @@ public class MovingObject : MonoBehaviour
     public Transform self;
     Vector3 position;
     Vector3 velocity = new Vector3(0.0f, 0.0f, 0.0f);
-    public float mass = 1.0f;
     void Start()
     {
         position = transform.position;
         velocity = calculateVelocity(singularity.transform.position, f2.transform.position, transform.position);
-        //Debug.Log("Velocity: " + velocity);
     }
 
     // Update is called once per frame
@@ -24,7 +22,6 @@ public class MovingObject : MonoBehaviour
     {
         // perform Euler Updates on the object
         position += velocity * Time.deltaTime;
-        Debug.Log("Velcity: " + velocity);
 
         transform.position = position;
         
@@ -40,21 +37,6 @@ public class MovingObject : MonoBehaviour
         Vector3 v1, v2;
         v1 = f1 - position;
         v2 = f2 - position;
-
-        // if (Vector3.Magnitude(v2 - v1) < 0.01f) {
-        //     v1.x += 0.01f;
-        //     v2.y += 0.01f;
-        // }
-        // Vector3 normal = Vector3.Cross(v1, v2);
-        // normal = normal.normalized;
-        // Debug.Log("Normal: " + normal);
-
-        // Vector2 pos2D = ConvertTo2DCoordinates(position, f1, normal);
-        // Vector2 f1_2D = ConvertTo2DCoordinates(f1, f1, normal);
-        // Vector2 f2_2D = ConvertTo2DCoordinates(f2, f1, normal);
-        // Debug.Log("Position 2D: " + pos2D);
-        // Debug.Log("F1 2D: " + f1_2D);
-        // Debug.Log("F2 2D: " + f2_2D);
 
         Vector3 elipse_normal = -((f2 - position) + (f1 - position)).normalized;
         Vector3 elipse_tangent = new Vector3(-elipse_normal.z, 0, elipse_normal.x);

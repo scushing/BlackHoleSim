@@ -7,7 +7,8 @@ public class Singularity : MonoBehaviour
     [SerializeField]
     private float SchwarzschildRadius = 1.0f;
     private float SpeedOfLight = 299792458f;
-    private float GravitationalConst = 6.6743f * Mathf.Pow(10, -11);
+    // private float GravitationalConst = 6.6743f * Mathf.Pow(10, -11);
+    private float GravitationalConst = 0.39f;
 
     public float GetSchwarzschildRadius { get { return SchwarzschildRadius; } }
 
