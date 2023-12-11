@@ -2,93 +2,52 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
+/// <summary>
+/// Handles Euler updates for position and velocity of objects
+/// </summary>
 public class MovingObject : MonoBehaviour
 {
-    // Start is called before the first frame update
-    public Singularity singularity;
+    public ObjectProperties center;
     public Transform f2;
     public const float G = 6.67408e-11f;
-    public Transform self;
     Vector3 position;
-    Vector3 velocity = new Vector3(0.0f, 0.0f, 0.0f);
+    Vector3 velocity = new(0.0f, 0.0f, 0.0f);
     void Start()
     {
-        position = transform.position;
-        velocity = calculateVelocity(singularity.transform.position, f2.transform.position, transform.position);
+        position = transform.localPosition;
+        velocity = CalculateVelocity(center.transform.localPosition, f2.transform.position, transform.localPosition);
     }
 
-    // Update is called once per frame
+    // Perform Euler Update on the object
     void FixedUpdate()
     {
-        // perform Euler Updates on the object
         position += velocity * Time.deltaTime;
-
-        transform.position = position;
+        transform.localPosition = position;
         
-        // calculate the force on the object
-        Vector3 toCenter = (singularity.transform.position - position);
-        float acceleration_mag = G * singularity.Mass / Mathf.Pow(Vector3.Magnitude(toCenter), 2);
+        Vector3 toCenter = (center.transform.localPosition - position);
+        // Newton's Law of Unversal Gravitation and Newton's 2nd Law
+        float acceleration_mag = G * center.Mass / Mathf.Pow(Vector3.Magnitude(toCenter), 2);
         Vector3 acceleration = toCenter.normalized * acceleration_mag;
         velocity += acceleration * Time.deltaTime;
     }
 
-    private Vector3 calculateVelocity(Vector3 f1, Vector3 f2, Vector3 position)
+    // Initial velocity for Keplerian Orbit
+    private Vector3 CalculateVelocity(Vector3 f1, Vector3 f2, Vector3 position)
     {
-        Vector3 v1, v2;
-        v1 = f1 - position;
-        v2 = f2 - position;
-
+        // Normal to elipse circumference at position
         Vector3 elipse_normal = -((f2 - position) + (f1 - position)).normalized;
-        Vector3 elipse_tangent = new Vector3(-elipse_normal.z, 0, elipse_normal.x);
+        // Tangent to elipse circumference at position
+        // Only setup to work on xz plane
+        Vector3 elipse_tangent = new(-elipse_normal.z, 0, elipse_normal.x);
+        // Flips tangent when necessary to ensure speed calculation is correct
         if (Vector3.Dot(elipse_tangent, f1 - position) < 0.0f) {
             elipse_tangent = -elipse_tangent;
         }
-        Debug.Log("Elipse Tangent: " + elipse_tangent);
+        // Semi-major axis of elipse
+        float a = (Vector3.Distance(f1, position) + Vector3.Distance(f2, position)) / 2;
+        // Velocity formula from Kepler's Laws
+        float speed = Mathf.Sqrt(G * center.Mass * (2/Vector3.Magnitude(position - f1) - 1/a));
 
-        float a = Vector3.Distance(f1, position) + Vector3.Distance(f2, position);
-        float speed = Mathf.Sqrt(G * singularity.Mass * (2/Vector3.Magnitude(position - f1) - 1/a));
-
-        // elipse_tangent_3D = ConvertTo3DCoordinates(elipse_tangent, f1, normal);
-        Debug.Log("Elipse Tangent 3D: " + elipse_tangent);
-        Debug.Log("Speed: " + speed);
         return elipse_tangent * speed;
-    }
-    public static Vector2 ConvertTo2DCoordinates(Vector3 position, Vector3 planeOrigin, Vector3 planeNormal)
-    {
-        // Calculate the basis vectors of the plane
-        Vector3 u, v;
-        if (Mathf.Abs(planeNormal.z) > Mathf.Sqrt(2.0f)/2.0f) {
-            u = new Vector3(planeNormal.y, -planeNormal.x, 0.0f);
-        } else {
-            u = new Vector3(0.0f, planeNormal.z, -planeNormal.y);
-        }
-
-        u = u.normalized;
-        v = Vector3.Cross(planeNormal, u);
-
-        // Find the 2D coordinates of the point in the plane
-        Vector3 d = position - planeOrigin;
-        float x = Vector3.Dot(d, u);
-        float y = Vector3.Dot(d, v);
-
-        return new Vector2(x, y);
-    }
-
-    public static Vector3 ConvertTo3DCoordinates(Vector2 position, Vector3 planeOrigin, Vector3 planeNormal)
-    {
-        // Calculate the basis vectors of the plane
-        Vector3 u, v;
-        if (Mathf.Abs(planeNormal.z) > Mathf.Sqrt(2.0f)/2.0f) {
-            u = new Vector3(planeNormal.y, -planeNormal.x, 0.0f);
-        } else {
-            u = new Vector3(0.0f, planeNormal.z, -planeNormal.y);
-        }
-
-        u = u.normalized;
-        v = Vector3.Cross(planeNormal, u);
-
-        // Find the 3D coordinates of the point in the plane
-        Vector3 point = planeOrigin + u * position.x + v * position.y;
-        return point;
     }
 }
