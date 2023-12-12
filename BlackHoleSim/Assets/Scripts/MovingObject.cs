@@ -39,7 +39,14 @@ public class MovingObject : MonoBehaviour
         velocity += acceleration * Time.deltaTime;
     }
 
-    // Initial velocity for Keplerian Orbit
+    /// <summary>
+    /// Calculates initial velocity for Keplerian Orbit
+    ///
+    /// </summary>
+    /// <param name="f1">First focus of elipse, and in this case the object at the center of the orbit</param>
+    /// <param name="f2">Second focus of elipse</param>
+    /// <param name="position">Starting position of this object</param>
+    /// <returns></returns>
     private Vector3 CalculateVelocity(ObjectProperties f1, Vector3 f2, Vector3 position)
     {
         // Normal to elipse circumference at position

@@ -1,11 +1,19 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+
+/// <summary>
+/// Visualization and debugging tool for ray marching.
+/// </summary>
 public class RayVisualization : MonoBehaviour
 {
     public Transform dir;
     public Singularity singularity;
-    public float gravitationalConst = 0.000000000066743f;
+
+    // Approximation used with Schwarzschild radius instead of mass. This works because they scale
+    // linearly, and is done to avoid use of astronomical values that cause floating point errors.
+    // Actual gravitational constant is 0.000000000066743
+    public float gravitationalConst = 0.39f;
     public float stepSize;
     public float maxSteps;
 

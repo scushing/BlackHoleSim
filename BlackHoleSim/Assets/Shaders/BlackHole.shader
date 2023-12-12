@@ -5,8 +5,6 @@ Shader"Unlit/BlackHole"
     {
         _MainTex ("Texture", 2D) = "white" {}
         _SchwarzschildRadius ("Schwarzschild Radius", float) = 1
-        //_EffectRange ("Effect Entry Range", float) = 5
-        //_BlurRange ("Blur Range", float) = 1
         _GravitationalConstant ("Gravitational Const", float) = 0.000000000066743
         _StepSize ("Step Size", float) = 0.1
         _MaxSteps ("Max Steps", int) = 1000
@@ -64,11 +62,12 @@ Shader"Unlit/BlackHole"
             v2f vert(appdata i)
             {
                 v2f o; 
-                // Clip position 
+                // Clip position
                 o.pos = UnityObjectToClipPos(i.vertex);
                 // World pos
                 o.worldPos = mul(unity_ObjectToWorld, i.vertex);
                 
+                // Re-scales and centers (uv ranges 0 to 1 and screen ranges -1 to 1)
                 float2 uv = i.uv * 2 - 1;
                 float3 viewVector = mul(unity_CameraInvProjection, float4(uv.x, uv.y, 0, -1));
                 o.viewDir = mul(unity_CameraToWorld, float4(viewVector, 0));
@@ -80,7 +79,7 @@ Shader"Unlit/BlackHole"
             }
 
             // Ray marching function
-            // Iteratively euler updates ray until it enters the event horizon, leaves the effect range, or takes max steps
+            // Iteratively euler updates ray until it reaches the center, leaves the effect range, or takes max steps
             float3 rayMarch(float3 center, float3 rayOrigin, float3 rayDirection)
             {
                 float3 currentPos = rayOrigin;
@@ -101,6 +100,7 @@ Shader"Unlit/BlackHole"
                     float dist = length(currentPos - center);
                     // Using Schwarzchild Radius instead of mass is to prevent floating point errors
                     // Has same effect when scaling because they scale to each other linearly (radius = 2 * G * Mass / dist^2)
+                    // Gravitational Constant is altered to accomodate this.
                     float accelerationMagnitude = _GravitationalConstant * _SchwarzschildRadius / (dist * dist);
                     float3 acceleration = normalize(center - currentPos) * accelerationMagnitude;
                     currentDir = normalize(currentDir + acceleration * _StepSize);
@@ -121,7 +121,7 @@ Shader"Unlit/BlackHole"
                 // Here intersection.x is distance to enter sphere, intersection.y is distance to exit
                 float2 intersection = raySphereIntersection(center, _EffectRange, rayOrigin, rayDirection);
     
-                // Ray unaffected
+                // Ray unaffected (never contacts sphere)
                 if (intersection.x > _MaxFloat - _Epsilon)
                 {
                     // Pixel color unchanged
@@ -133,19 +133,21 @@ Shader"Unlit/BlackHole"
                     float3 entryPoint = rayOrigin + rayDirection * -intersection.y;
                     // March ray calculate path near black hole 
                     float3 finalPos = rayMarch(center, entryPoint, rayDirection);
-                    // Smaller than normalized vector, ie. zero-vector case
+                    // Ray ended up within single step of center, meaning it has failed to escape
                     if (length(finalPos - center) < _StepSize)
                     {
-                        // Return black in case where ray enters event horizon
+                        // Return black in case where ray is trapped
                         return float4(0, 0, 0, 0);
                     }
                     float3 finalDir = (finalPos - rayOrigin);
                     // Convert the final direction to camera uv
                     float4 clipPos = mul(unity_CameraProjection, mul(unity_WorldToCamera, float4(finalPos, 1.0)));
                     clipPos /= clipPos.w;
+                    // Reverse of conversion done in vert function
                     float2 distortedUv = float2((clipPos.x + 1.0) * 0.5, (clipPos.y + 1.0) * 0.5);
         
-                    // If close to edge, blur (otherwise edge of effect range can have sharp contrast)
+                    // If close to edge, blur (otherwise edge of effect range can have visible contrast)
+                    // Chosen values are somewhat arbitrary here. Decided these values look good and scale well.
                     float blurIntensity = intersection.y - length(center - rayOrigin);
                     float2 uv;
                     if (abs(blurIntensity) < _BlurRange)

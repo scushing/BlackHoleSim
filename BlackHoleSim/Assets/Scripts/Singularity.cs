@@ -2,12 +2,18 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
+/// <summary>
+/// Conatiner for Schwarzchild radius and calculates mass from it
+/// </summary>
 public class Singularity : ObjectProperties
 {
     [SerializeField]
     private float SchwarzschildRadius = 1.0f;
     private float SpeedOfLight = 299792458f;
-    private float GravitationalConst = 0.39f; //6.6743f * Mathf.Pow(10, -11);
+
+    // Gravitational Constant is increased here to reduce mass of singularity, allowing slower and closer orbits
+    // which are easier to see. Actual is 6.6743f * Mathf.Pow(10, -11);
+    private float GravitationalConst = 0.39f;
 
     public float GetSchwarzschildRadius { get { return SchwarzschildRadius; } }
 

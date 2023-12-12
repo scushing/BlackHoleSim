@@ -2,7 +2,9 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-// Points camera towards origin
+/// <summary>
+/// Points camera towards defined center
+/// </summary>
 public class CenterCamera : MonoBehaviour
 {
     public Transform center;
