@@ -83,7 +83,8 @@ Material:
     - _PositionX: 0
     - _PositionY: 0
     - _PositionZ: 0
-    - _SchwarzschildRadius: 1
+    - _ProductOfConstants: 1.1
+    - _SchwarzschildRadius: 0.5
     - _SmoothnessTextureChannel: 0
     - _SpecularHighlights: 1
     - _SrcBlend: 1

@@ -13,13 +13,12 @@ public class RayVisualization : MonoBehaviour
     // Approximation used with Schwarzschild radius instead of mass. This works because they scale
     // linearly, and is done to avoid use of astronomical values that cause floating point errors.
     // Actual gravitational constant is 0.000000000066743
-    public float gravitationalConst = 0.39f;
+    public float productOfConst = 1.1f;
     public float stepSize;
     public float maxSteps;
 
     private void OnDrawGizmos()
     {
-        // Origin
         Gizmos.color = Color.green;
         float effectRadius = 8 * singularity.GetSchwarzschildRadius;
         Vector3 currentPos = transform.position;
@@ -52,7 +51,7 @@ public class RayVisualization : MonoBehaviour
             // Get forces and update direction
             float dist = Vector3.Magnitude(currentPos - singularity.transform.position);
             // See shader for logic behind these values
-            float accelerationMagnitude = gravitationalConst * singularity.GetSchwarzschildRadius / (dist * dist);
+            float accelerationMagnitude = productOfConst * singularity.GetSchwarzschildRadius / (dist * dist);
             Vector3 acceleration = Vector3.Normalize(singularity.transform.position - currentPos) * accelerationMagnitude;
             // Using step size instead of delta time to reduce chance of floating point errors
             currentDir = Vector3.Normalize(currentDir + acceleration * stepSize);

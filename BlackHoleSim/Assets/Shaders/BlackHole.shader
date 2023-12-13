@@ -5,7 +5,8 @@ Shader"Unlit/BlackHole"
     {
         _MainTex ("Texture", 2D) = "white" {}
         _SchwarzschildRadius ("Schwarzschild Radius", float) = 1
-        _ProductOfConstants ("Product of Constants", float) = 0.000000000066743
+        // Tweaked to get correct ratio
+        _ProductOfConstants ("Product of Constants", float) = 1.06725
         // Consider scaling step size with Schwarzschild radius instead of passing it in (Greater simplicity and scalability)
         _StepSize ("Step Size", float) = 0.1
         _MaxSteps ("Max Steps", int) = 1000
@@ -28,7 +29,7 @@ Shader"Unlit/BlackHole"
             float4 _MainTex_ST;
 
             // Mutable to more easily make more visible
-            float _ProductOfConstants;
+            const float _ProductOfConstants;
             float _SchwarzschildRadius;
             float _EffectRange;
             float _BlurRange;
