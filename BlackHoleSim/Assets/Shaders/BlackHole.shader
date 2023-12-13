@@ -10,9 +10,8 @@ Shader"Unlit/BlackHole"
         // Consider scaling step size with Schwarzschild radius instead of passing it in (Greater simplicity and scalability)
         _StepSize ("Step Size", float) = 0.1
         _MaxSteps ("Max Steps", int) = 1000
-        _PositionX ("Position X", float) = 0
-        _PositionY ("Position Y", float) = 0
-        _PositionZ ("Position Z", float) = 0
+        _Position ("Position", vector) = (0, 0, 0, 1)
+        _Object1 ("Object 1", vector) = (0, 0, 0, 1)
     }
 
     SubShader
@@ -37,9 +36,8 @@ Shader"Unlit/BlackHole"
             float _StepSize;
             float _MaxSteps;
 
-            float _PositionX;
-            float _PositionY;
-            float _PositionZ;
+            float3 _Position;
+            float4 _Object1;
 
             const float _MaxFloat = 3.402823466e+38;
             const float _SpeedOfLight = 299792458;
@@ -118,7 +116,7 @@ Shader"Unlit/BlackHole"
                 float3 rayOrigin = _WorldSpaceCameraPos;
                 float3 rayDirection = normalize(i.viewDir);
     
-                float3 center = float3(_PositionX, _PositionY, _PositionZ);
+                float3 center = _Position; //float3(_PositionX, _PositionY, _PositionZ);
     
                 // Here intersection.x is distance to enter sphere, intersection.y is distance to exit
                 float2 intersection = raySphereIntersection(center, _EffectRange, rayOrigin, rayDirection);
@@ -131,6 +129,12 @@ Shader"Unlit/BlackHole"
                 }
                 else
                 {
+                    float2 obstructed = raySphereIntersection(_Object1.xyz, _Object1.w, rayOrigin, rayDirection);
+                    // Object obstructs view of black hole
+                    if (intersection.x < obstructed.x && obstructed.x < _MaxFloat - _Epsilon)
+                    {
+                        return tex2D(_MainTex, i.uv);
+                    }
                     // Step forward to effect range
                     float3 entryPoint = rayOrigin + rayDirection * -intersection.y;
                     // March ray calculate path near black hole 
