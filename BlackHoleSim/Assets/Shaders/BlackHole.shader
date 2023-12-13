@@ -5,7 +5,8 @@ Shader"Unlit/BlackHole"
     {
         _MainTex ("Texture", 2D) = "white" {}
         _SchwarzschildRadius ("Schwarzschild Radius", float) = 1
-        _GravitationalConstant ("Gravitational Const", float) = 0.000000000066743
+        _ProductOfConstants ("Product of Constants", float) = 0.000000000066743
+        // Consider scaling step size with Schwarzschild radius instead of passing it in (Greater simplicity and scalability)
         _StepSize ("Step Size", float) = 0.1
         _MaxSteps ("Max Steps", int) = 1000
         _PositionX ("Position X", float) = 0
@@ -27,7 +28,7 @@ Shader"Unlit/BlackHole"
             float4 _MainTex_ST;
 
             // Mutable to more easily make more visible
-            float _GravitationalConstant;
+            float _ProductOfConstants;
             float _SchwarzschildRadius;
             float _EffectRange;
             float _BlurRange;
@@ -101,7 +102,7 @@ Shader"Unlit/BlackHole"
                     // Using Schwarzchild Radius instead of mass is to prevent floating point errors
                     // Has same effect when scaling because they scale to each other linearly (radius = 2 * G * Mass / dist^2)
                     // Gravitational Constant is altered to accomodate this.
-                    float accelerationMagnitude = _GravitationalConstant * _SchwarzschildRadius / (dist * dist);
+                    float accelerationMagnitude = _ProductOfConstants * _SchwarzschildRadius / (dist * dist);
                     float3 acceleration = normalize(center - currentPos) * accelerationMagnitude;
                     currentDir = normalize(currentDir + acceleration * _StepSize);
                 }
